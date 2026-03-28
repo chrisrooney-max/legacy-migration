@@ -3,17 +3,61 @@ name: document-onboarding
 description: Generate a getting started guide for new developers working on the legacy codebase
 ---
 
-Analyse the codebase at $ARGUMENTS and produce a getting started guide for a new developer.
+Analyse the codebase at $ARGUMENTS and write the output to `onboarding/getting-started.md`.
 
-Cover the following:
+Follow this structure exactly:
 
-1. **Prerequisites** — required tools, languages, runtimes, and versions
-2. **Setup** — step-by-step instructions to get the project running locally
-3. **Running the application** — how to start the app in development mode
-4. **Running tests** — how to run the test suite and any individual tests
-5. **Key concepts** — the 3-5 things a developer must understand to be productive quickly
-6. **Common gotchas** — known traps, quirks, or non-obvious behaviours to be aware of
+```
+# Getting Started — <System Name>
 
-Write the output to `onboarding/getting-started.md`.
+> Estimated setup time: <estimate based on complexity observed>
 
-Be factual — only document what you can observe in the code or config files. Mark anything unclear with a `> ⚠️ Unclear:` callout.
+---
+
+## Prerequisites
+
+Table with columns: Tool | Version | Notes
+Include any version-specific constraints or known incompatibilities in the Notes column.
+
+---
+
+## Setup
+
+Numbered steps. Each step should have:
+- A bold title
+- Prose or command block explaining exactly what to do
+- Any warnings inline as blockquotes
+
+---
+
+## Running the Application
+
+How to start the application. Include the command, what success looks like (log line, HTTP response, etc.), and where to find logs.
+
+---
+
+## Running Tests
+
+How to run the full test suite and how to run a single test. Include any prerequisites (e.g. live DB required).
+
+---
+
+## Key Concepts
+
+Numbered list of 3–6 things a new developer must understand to be productive. Each item should:
+- Have a bold title
+- Explain the concept in 2–4 sentences
+- Explain why it matters or what goes wrong if you don't understand it
+
+---
+
+## Common Gotchas
+
+Table with columns: Gotcha | Detail
+```
+
+**Formatting rules:**
+- Use `> ⚠️ Unclear:` callouts for anything that cannot be confirmed from the code or config — e.g. environment details that must come from ops
+- Use tables for prerequisites and gotchas
+- Use numbered steps (not bullets) for setup sequences where order matters
+- Be factual — only document setup steps you can verify from the code, build files, and config

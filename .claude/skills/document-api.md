@@ -3,17 +3,46 @@ name: document-api
 description: Extract and document all API endpoints or public interfaces from the legacy codebase
 ---
 
-Analyse the codebase at $ARGUMENTS and identify all exposed API endpoints or public interfaces.
+Analyse the codebase at $ARGUMENTS and write the output to `api/index.md`.
 
-For each endpoint or interface, document:
+Follow this structure exactly:
 
-1. **Method and path** — e.g. `GET /users/:id` or function signature
-2. **Description** — what does this endpoint/interface do?
-3. **Request parameters / inputs** — path params, query params, request body with types
-4. **Response format / outputs** — response body with types and example
-5. **Authentication** — is auth required? What type?
-6. **Error cases** — known error responses and their meaning
+```
+# API Documentation — <System Name>
 
-Write the output to `api/index.md`.
+> **Base URL:** <base URL> | **Protocol:** <HTTP version or other> | **Format:** <request/response format>
 
-Be factual — only document what you can observe in the code. Mark anything unclear with a `> ⚠️ Unclear:` callout.
+---
+
+## Authentication
+
+Describe the auth mechanism. Include an example header or token format if one exists.
+
+---
+
+## Endpoint Index
+
+Table with columns: Method | Path | Description
+
+---
+
+## Endpoints
+
+For each endpoint, use this sub-structure:
+
+### <METHOD> <path>
+
+One sentence describing what this endpoint does.
+
+**Path parameters:** (table: Parameter | Type | Description) — omit if none
+**Query parameters:** (table: Parameter | Type | Required | Default | Description) — omit if none
+**Request body:** code block showing example payload, followed by a table of fields (Field | Type | Required | Notes)
+**Response — <status> <label>:** code block showing example response
+**Error responses:** table with columns: Status | Code | Meaning
+```
+
+**Formatting rules:**
+- Use `> ⚠️ Unclear:` callouts for anything ambiguous — e.g. undocumented behaviour, auth gaps, or inconsistent error handling observed in code
+- Use tables for parameters and errors
+- Show realistic example payloads in code blocks, using the actual format the API uses (JSON, XML, etc.)
+- Be factual — only document endpoints you can confirm exist in the code

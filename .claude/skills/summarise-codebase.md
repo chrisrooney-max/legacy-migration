@@ -3,15 +3,56 @@ name: summarise-codebase
 description: Produce a quick high-level overview of a codebase before full documentation begins
 ---
 
-Analyse the codebase at $ARGUMENTS and produce a concise high-level summary covering:
+Analyse the codebase at $ARGUMENTS and write the output to `architecture/overview.md`.
 
-1. **What it does** — one paragraph describing the system's purpose
-2. **Tech stack** — languages, frameworks, databases, and infrastructure
-3. **Top-level structure** — major directories and what lives in each
-4. **Key components** — the most important modules or services and how they relate
-5. **Entry points** — where execution starts (e.g. main files, routes, handlers)
-6. **Immediate observations** — anything notable about code quality, patterns, or areas of concern
+Follow this structure exactly:
 
-Write the output to `architecture/overview.md`.
+```
+# Architecture Overview — <System Name>
 
-Keep it concise — this is a quick orientation, not exhaustive documentation. Mark anything unclear with a `> ⚠️ Unclear:` callout.
+> **System:** <name and version> | **Language:** <language and version> | **Last active development:** <year>
+
+One paragraph describing what the system does and its role.
+
+---
+
+## Tech Stack
+
+Table with columns: Layer | Technology | Version | Notes
+
+---
+
+## Top-Level Structure
+
+Directory tree (code block) showing major folders and a comment on each explaining what lives there.
+
+---
+
+## Component Diagram
+
+ASCII diagram showing major components and how they connect, with a brief label on each arrow describing the interaction type.
+
+---
+
+## Data Flow
+
+Numbered steps describing how data moves through the system from entry point to output.
+
+---
+
+## Key Design Decisions
+
+Table with columns: Decision | Rationale
+
+---
+
+## Technical Debt / Risk Areas
+
+Bullet list of risk areas. Each item should be specific and actionable, not vague.
+```
+
+**Formatting rules:**
+- Use `> ⚠️ Unclear:` callouts for anything ambiguous or that cannot be confirmed from the code alone
+- Use tables for anything comparative
+- Keep prose minimal — prefer bullets and tables over paragraphs
+- Be factual — only document what you can observe in the code
