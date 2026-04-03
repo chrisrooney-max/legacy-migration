@@ -13,7 +13,6 @@ This is a **legacy migration documentation agent** — a scaffold for automatica
 | `.claude/agents/` | Custom Claude subagents (code-documenter, migration-advisor, epic-creator) |
 | `.claude/skills/` | User-invocable skills (`/assess-migration`, `/create-epics`, `/document-code`) |
 | `.claude/skills/templates/` | Output templates for all 10 doc types, epic format, and rewrite-vs-refactor scoring |
-| `output/` | v2 analysis output for sdkman-broker |
 | `documentationV3/` | v3 analysis output for spring-projects/spring-framework |
 | `examples/` | Example output documents |
 | `architecture/`, `modules/`, `api/`, `onboarding/` | Legacy scaffold folders from initial setup |
