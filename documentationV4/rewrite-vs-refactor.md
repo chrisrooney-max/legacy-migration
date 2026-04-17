@@ -1,7 +1,7 @@
 # Migration Decision Report — Spring Framework
 
 > **Analysis date:** 2026-04-07
-> **Codebase analysed:** https://github.com/spring-projects/spring-framework (shallow clone, `main` branch, v7.1.0-SNAPSHOT)
+> **Codebase analysed:** `/tmp/spring-framework` (shallow clone, `main` branch, v7.1.0-SNAPSHOT)
 > **Report author:** migration-advisor agent
 
 ---
@@ -17,13 +17,13 @@
 | Revenue | $1,000,000 |
 | Cost-to-revenue ratio | 9.5% |
 
-**Observation:** At 9.5% cost-to-revenue, the current burden is not acute — but $1.14M in annual operating cost against $12M revenue is still material. There is no crisis forcing an immediate decision, which supports a careful, incremental approach.
+**Observation:** At 9.5% cost-to-revenue, the current burden is not acute — but $1.14M in annual operating cost against $12M annual revenue is still material. There is no financial crisis forcing an immediate decision, which supports a considered, incremental approach over a high-risk rewrite.
 
 ---
 
 ## Codebase Analysis Summary
 
-The following metrics were gathered from the shallow clone before scoring.
+The following metrics were gathered from the cloned repository before scoring.
 
 | Metric | Value | Notes |
 |---|---|---|
@@ -62,24 +62,64 @@ The following metrics were gathered from the shallow clone before scoring.
 
 | # | Dimension | Weight | Score (1–5) | Weighted | Rationale |
 |---|---|---|---|---|---|
-| 1 | Codebase Size | 2 | 1 | 2 | Main source is ~65k Java lines across 9,631 files in 34 modules. Well above the 100k threshold when test corpus (628k lines) is included. A full rewrite would take years. Source: `find /tmp/spring-framework -path "*/src/main/*" -name "*.java" \| xargs wc -l` → 65,343 total. |
-| 2 | Code Complexity | 2 | 2 | 4 | Structure is largely navigable — 34 well-named modules, clear layering (core → beans → context → web). However, 282 files exceed 500 lines and the bean factory hierarchy (`DefaultListableBeanFactory`, 2,806 lines; `AbstractAutowireCapableBeanFactory`, 2,062 lines) represents dense, tightly coupled code accumulated over two decades. Abstract class extension counts are high (31 in spring-beans, 65 in spring-context, 129 in spring-webmvc). Scored 2 rather than 1 because the majority of modules are well-structured; the god classes are concentrated in the core IoC layer. |
-| 3 | Test Coverage Quality | 2 | 5 | 10 | 3,460 test files. 61,198 assertions. 4,763 JUnit imports. Dedicated integration-tests module. CI runs nightly across Java 17, 21, and 25. Tests span unit, MockMvc-based integration, and full context-loading scenarios (`@SpringJUnitConfig`, 1,716 usages). Tests constitute the single best specification of Spring's behaviour and are a comprehensive rewrite safety net. |
+| 1 | Codebase Size | 2 | 1 | 2 | Main source is ~65k Java lines across 9,631 files in 34 modules. Well above the 100k threshold when test corpus (~678k lines) is included. A full rewrite would take years. Source: `find /tmp/spring-framework -path "*/src/main/*" -name "*.java" | xargs wc -l` → 65,343 total. |
+| 2 | Code Complexity | **3** | 2 | **6** | Structure is largely navigable — 34 well-named modules, clear layering (core → beans → context → web). However, 282 files exceed 500 lines and the bean factory hierarchy (`DefaultListableBeanFactory`, 2,806 lines; `AbstractAutowireCapableBeanFactory`, 2,062 lines) represents dense, tightly coupled code accumulated over two decades. Abstract class extension counts are high (31 in spring-beans, 65 in spring-context, 129 in spring-webmvc). Scored 2 rather than 1 because the majority of modules are well-structured; the god classes are concentrated in the core IoC layer. |
+| 3 | Test Coverage Quality | **3** | 5 | **15** | 3,460 test files. 61,198 assertions. 4,763 JUnit imports. Dedicated `integration-tests` module. CI runs nightly across Java 17, 21, and 25. Tests span unit, MockMvc-based integration, and full context-loading scenarios (`@SpringJUnitConfig`, 1,716 usages). Tests constitute the single best specification of Spring's behaviour and are a comprehensive rewrite safety net. |
 | 4 | Nature of Technical Debt | 3 | 2 | 6 | Debt is mostly structural in the IoC core (deep inheritance, accumulation of optional responsibilities in `DefaultListableBeanFactory`). However, 635 `@Deprecated` annotations and active `@since 6.x` additions show the team is actively modelling and managing debt. Only 84 files carry TODO/FIXME comments. The majority of modules (spring-jdbc, spring-tx, spring-web, spring-webflux) have cleaner, more decomposed designs. Debt is real but manageable and well-understood by maintainers. |
-| 5 | Business Criticality & Risk Tolerance | 3 | 3 | 9 | Revenue is $1,000,000/month. The system is described as "key system for us." Risk tolerance is stated as **Moderate**. Spring Framework is a foundational dependency — any regression propagates to all application layers. A score of 3 reflects the moderate risk tolerance offset by the high revenue stake. Source: `migration-inputs.md` — revenue $1,000,000, risk tolerance Moderate. |
-| 6 | Functional Understanding | 3 | 4 | 12 | Spring Framework is one of the best-documented open-source Java projects: 20+ years of public Javadoc, reference documentation, migration guides (e.g., `framework-docs/`), and a massive public API corpus. `@since` tags trace every public member back to its introduction version. The test suite provides executable specification. Scored 4 rather than 5 because edge-case behaviour in the reflection-heavy IoC layer and AOP proxy chains is subtle and partially implicit. |
-| 7 | Consumer Coupling | 2 | 1 | 2 | Spring Framework has millions of downstream consumers (applications, libraries, Spring Boot itself). The public API spans thousands of types across 34 modules, with contracts dating to v1.x still in active use (307 `@since 1.x` annotations). A wholesale API replacement would break every downstream consumer. This is the single most constraining dimension. Source: `framework-api/framework-api.gradle` (aggregate Javadoc over all modules); `@since` tag counts above. |
-| 8 | Team Capability in Target Language | 2 | 3 | 6 | Migration inputs state 5 engineers full-time. Spring is Java/Kotlin; the target would almost certainly remain Java/Kotlin. Team capability is assumed moderate-to-strong (they are already running this system), but no explicit expertise level was provided. Scored 3 (moderate) as a conservative assumption. |
-| 9 | Time Pressure | 2 | 4 | 8 | Cost-to-revenue ratio is 9.5% — not crisis-level. Monthly cost burden is $95,000. There is no stated deadline. Financial pressure does not mandate rapid action; the business can wait for the right solution. Scored 4 (no urgent deadline; 6–12 months acceptable). Source: `migration-inputs.md` — all financials complete. |
-| 10 | Deployment & Cutover Simplicity | 2 | 1 | 2 | Spring Framework is a library, not a deployable service. There is no Dockerfile, no docker-compose, no standalone deployment unit. Cutover is not a load-balancer switch — it requires every downstream application to upgrade its dependency. This is the hardest possible cutover scenario: coordinated consumer migration across an unknown number of applications. Source: No Dockerfile found in repo; `spring-webmvc.gradle` shows 6 first-party `api(project(...))` dependencies + 20+ optional externals. |
+| 5 | Business Criticality & Risk Tolerance | 3 | 3 | 9 | Revenue is $1,000,000/month. The system is described as "key system for us." Risk tolerance is stated as **Moderate**. Spring Framework is a foundational dependency — any regression propagates to all application layers. A score of 3 reflects the moderate risk tolerance offset by the high revenue stake. Source: `migration-inputs.md` — revenue $1,000,000/month, risk tolerance Moderate. |
+| 6 | Functional Understanding | 3 | 4 | 12 | Spring Framework is one of the best-documented open-source Java projects: 20+ years of public Javadoc, reference documentation, migration guides (`framework-docs/`), and a massive public API corpus. `@since` tags trace every public member back to its introduction version. The test suite provides executable specification. Scored 4 rather than 5 because edge-case behaviour in the reflection-heavy IoC layer and AOP proxy chains is subtle and partially implicit. **Note: this score is uncertain — see Sensitivity Analysis section below.** |
+| 7 | Consumer Coupling | 2 | 1 | 2 | **⚠️ Key assumption — OSS library vs internal system:** This score of 1 assumes Spring Framework is being evaluated as an open-source library with millions of external downstream consumers. If your organisation's scenario is an internal fork or private deployment with a bounded set of internal consumers, this score would rise to 2–4 and could shift the verdict. The public API spans thousands of types across 34 modules, with contracts dating to v1.x still in active use (307 `@since 1.x` annotations). A wholesale API replacement would break every downstream consumer. Source: `framework-api/framework-api.gradle` (aggregate Javadoc over all modules); `@since` tag counts above. **See Sensitivity Analysis section for the impact of varying this score.** |
+| 8 | Team Capability in Target Language | 2 | 3 | 6 | Migration inputs state 5 engineers full-time. Spring is Java/Kotlin; the target would almost certainly remain Java/Kotlin. Team capability is assumed moderate-to-strong (they are already running this system), but no explicit expertise level was provided. Scored 3 (moderate) as a conservative assumption. Source: `migration-inputs.md` — 5 engineers full-time. |
+| 9 | Time Pressure | 2 | 4 | 8 | Cost-to-revenue ratio is 9.5% — not crisis-level. Monthly cost burden is $95,000. No deadline is stated in `migration-inputs.md`. At 9.5% cost-to-revenue there is no financial pressure mandating rapid action; the business has 6–12 months to execute a considered plan. Scored **4** (no urgent deadline; 6–12 months acceptable). Source: `migration-inputs.md` — all financials complete, no deadline specified. |
+| 10 | Deployment & Cutover Simplicity | 2 | 1 | 2 | Spring Framework is a library, not a deployable service. There is no Dockerfile, no docker-compose, no standalone deployment unit in the repository. Cutover is not a load-balancer switch — it requires every downstream application to upgrade its dependency. This is the hardest possible cutover scenario: coordinated consumer migration across an unknown number of applications. Source: No Dockerfile found in repo; `spring-webmvc.gradle` shows 6 first-party `api(project(...))` dependencies + 20+ optional externals. |
+| | **Total** | **25** | | **68** | |
 
-**Weighted total = 2 + 4 + 10 + 6 + 9 + 12 + 2 + 6 + 8 + 2 = 61**
+**Weighted total = 2 + 6 + 15 + 6 + 9 + 12 + 2 + 6 + 8 + 2 = 68**
 
-**Final score = 61 ÷ 25 = 2.44**
+**Final score = 68 ÷ 25 = 2.72**
 
-**Verdict: Strangle & Refactor** (score < 2.5 → incremental improvement is lower risk and lower cost)
+**Verdict: Hybrid** (score 2.5–3.4 → strangle the riskiest parts, refactor the rest)
 
-> Note: The score sits close to the 2.5 threshold. The three dimensions dragging the score lowest — Codebase Size (1), Consumer Coupling (1), and Deployment Complexity (1) — are not scoring artefacts. They represent genuine structural constraints that make a rewrite exceptionally high risk for Spring Framework specifically.
+> Note: The corrected weights for Dimensions 2 and 3 (both Weight = 3, not 2) shift the verdict from the previous report's Strangle & Refactor to Hybrid. The exceptional test coverage (D3 = 5, weighted 15) and relatively navigable complexity (D2 = 2, weighted 6) now have appropriate influence. The score sits at 2.72 — above the 2.5 Strangle & Refactor threshold, but well below the 3.5 Rewrite threshold. The dominant constraints (Consumer Coupling = 1, Deployment Complexity = 1, Codebase Size = 1) remain genuine structural barriers to a full rewrite.
+
+---
+
+## Sensitivity Analysis
+
+Two dimensions are uncertain given the available inputs: Dimension 6 (Functional Understanding) and Dimension 7 (Consumer Coupling). The analysis below shows how the final score and verdict change across the plausible range for each, holding all other scores fixed.
+
+### Dimension 6 — Functional Understanding (Weight: 3)
+
+The score of 4 assumes strong functional understanding based on public documentation and test coverage. However, edge-case behaviour in the IoC layer and AOP proxy chains is partially implicit, and it is unknown how much institutional knowledge the team holds about undocumented corner cases.
+
+Base weighted total (all other dimensions): 68 − 12 = 56
+
+| D6 Score | Meaning | Weighted Contribution | Final Weighted Total | Final Score | Verdict |
+|---|---|---|---|---|---|
+| 1 | Behaviour poorly understood; rewrite would likely miss edge cases | 3 | 59 | 2.36 | **Strangle & Refactor** |
+| 3 | Good understanding of main flows; some edge cases uncertain | 9 | 65 | 2.60 | **Hybrid** |
+| **4 (base)** | **Strong understanding of all flows and most edge cases** | **12** | **68** | **2.72** | **Hybrid** |
+| 5 | Complete understanding; behaviour fully documented and testable | 15 | 71 | 2.84 | **Hybrid** |
+
+**Finding:** If functional understanding is poor (score = 1), the verdict drops to Strangle & Refactor (2.36). At any score of 2 or above, the verdict remains Hybrid. The 2.5 threshold is crossed between scores 1 and 2. The business should answer: *How well does the current team understand the implicit edge-case behaviour in the IoC layer and AOP subsystem?*
+
+---
+
+### Dimension 7 — Consumer Coupling (Weight: 2)
+
+> **⚠️ Critical assumption:** The base score of 1 treats Spring Framework as an OSS library with millions of external consumers. If this system is an internal fork, private build, or bounded internal deployment, the real consumer count is much lower and this score should be raised. This is the single assumption most likely to be wrong.
+
+Base weighted total (all other dimensions): 68 − 2 = 66
+
+| D7 Score | Assumed Consumer Scenario | Weighted Contribution | Final Weighted Total | Final Score | Verdict |
+|---|---|---|---|---|---|
+| **1 (base)** | **OSS library; millions of external consumers; coordinated cutover impossible** | **2** | **68** | **2.72** | **Hybrid** |
+| 2 | Several consumers; some contract complexity | 4 | 70 | 2.80 | **Hybrid** |
+| 3 | Internal deployment; a few bounded consumers; manageable cutover | 6 | 72 | 2.88 | **Hybrid** |
+| 4 | Internal fork; one or two consumers; simple API contract | 8 | 74 | 2.96 | **Hybrid** |
+| 5 | Fully controlled consumers; team owns all downstream applications | 10 | 76 | 3.04 | **Hybrid** |
+
+**Finding:** Across the full plausible range (1–5), the verdict remains Hybrid. Consumer Coupling (Weight: 2) does not have enough influence to push the score above 3.5 (Rewrite) or below 2.5 (Strangle & Refactor) on its own. However, the base score of 1 is the most pessimistic and the least likely to be correct if this is an internal system. The business should clarify how many internal applications consume this framework and whether a coordinated cutover is feasible.
 
 ---
 
@@ -88,13 +128,13 @@ The following metrics were gathered from the shallow clone before scoring.
 ### Assumptions
 
 - Engineer cost: $15,000/month fully loaded (mid-range for senior Java engineers)
-- 5 engineers available full-time for migration
+- 5 engineers available full-time for migration (source: `migration-inputs.md`)
 - Migration team cost: 5 × $15,000 = $75,000/month on top of existing costs
 - Existing costs continue throughout any migration (system stays live)
 - Post-migration savings estimate: conservative 20% reduction in maintenance + engineering costs = ($50,000 + $40,000) × 20% = $18,000/month
-- Call center costs assumed unchanged (Spring Framework is a development platform; call center costs likely relate to product features, not the framework itself)
-- No revenue disruption assumed for Strangle & Refactor (incremental, no cutover risk)
-- Rewrite scenario assumes a 25% chance of partial revenue disruption during cutover, not modelled as a cost but flagged as risk
+- Call center costs assumed unchanged — likely driven by product features, not framework architecture
+- No revenue disruption assumed for Strangle & Refactor / Hybrid (incremental, no cutover risk)
+- Rewrite scenario: 25% chance of partial revenue disruption during cutover — not modelled as a fixed cost but flagged as qualitative risk
 
 ---
 
@@ -104,9 +144,9 @@ The following metrics were gathered from the shallow clone before scoring.
 |---|---|
 | Monthly cost burden | $95,000 |
 | 12-month total cost | $1,140,000 |
-| Cost trajectory | Likely growing — `@Deprecated` accumulation, Java version compatibility overhead, and IoC core complexity will require increasing maintenance spend as Java evolves (Java 21 virtual threads, Java 25 Valhalla value types) |
+| Cost trajectory | Likely growing — `@Deprecated` accumulation (635 usages), Java version compatibility overhead, and IoC core complexity will require increasing maintenance spend as Java evolves (Java 21 virtual threads, Java 25 Valhalla value types) |
 
-**12-month position: -$1,140,000 in operating cost with no structural improvement.**
+**12-month position: −$1,140,000 in operating cost with no structural improvement.**
 
 ---
 
@@ -128,13 +168,13 @@ The following metrics were gathered from the shallow clone before scoring.
 | Migration team cost (months 1–3) | $75,000 | $225,000 |
 | Migration team cost (months 4–12) | $0 | $0 |
 | **Total cost during migration period** | | **$1,365,000** |
-| Post-migration monthly saving (from month 4) | -$18,000 | -$162,000 (months 4–12) |
-| **Net 12-month position** | | **-$1,203,000** |
-| **Net 24-month position** | | -$1,203,000 + (-$18,000 × 12) = **-$987,000** |
+| Post-migration monthly saving (from month 4) | −$18,000 | −$162,000 (months 4–12) |
+| **Net 12-month position** | | **−$1,203,000** |
+| **Net 24-month position** | | −$1,203,000 + (−$18,000 × 12) = **−$987,000** |
 
-**Break-even:** Migration overhead ($225,000) ÷ monthly saving ($18,000) = **12.5 months from project start** (approximately month 15 from today if migration starts immediately).
+**Break-even:** Migration overhead ($225,000) ÷ monthly saving ($18,000) = **12.5 months from project start** (approximately month 16 from today if migration starts now).
 
-> Assumption: Post-migration savings are conservative at 20% of maintenance + engineering. Actual savings could be higher if the IoC core simplification reduces incident frequency and onboarding cost.
+> Assumption: Post-migration savings are conservative at 20% of maintenance + engineering. Actual savings could be higher if IoC core simplification reduces incident frequency and onboarding cost.
 
 ---
 
@@ -144,7 +184,7 @@ The following metrics were gathered from the shallow clone before scoring.
 
 **Effort estimate:**
 
-- Base rewrite estimate for 65k lines with 34 modules: 30–40 engineer-months
+- Base rewrite estimate for ~65k lines across 34 modules: 30–40 engineer-months
 - 1.5× contingency: **45–60 engineer-months** (with 5 engineers: 9–12 months of calendar time)
 - Consumer migration tooling (codemods, migration guides): additional 6–8 engineer-months
 - Parallel running period (old + new): additional 3–6 months
@@ -155,60 +195,48 @@ The following metrics were gathered from the shallow clone before scoring.
 | Rewrite team cost (months 1–12) | $75,000 | $900,000 |
 | Consumer migration support (months 13–18) | $75,000 | $450,000 |
 | **Total cost** | | **$3,630,000** |
-| Post-rewrite monthly saving (from month 19) | -$18,000 | -$108,000 (months 19–24) |
-| **Net 24-month position** | | **-$3,522,000** |
+| Post-rewrite monthly saving (from month 19) | −$18,000 | −$108,000 (months 19–24) |
+| **Net 24-month position** | | **−$3,522,000** |
 
-**Break-even:** ($3,630,000 − savings) ÷ $18,000/month = **~200 months from project start (16+ years)**
+**Break-even:** $3,630,000 ÷ $18,000/month ≈ **202 months from project start (~17 years)**
 
-> This break-even figure is not an error — it reflects the reality that rewriting a library with millions of external consumers generates virtually no direct cost saving while incurring enormous migration effort. The only scenario where a rewrite generates positive return is if it enables new revenue that the current architecture blocks. No such opportunity is described in the inputs.
+> This break-even figure is not an error — it reflects the reality that rewriting a library with large numbers of external or internal consumers generates virtually no direct operating cost saving while incurring enormous migration effort. The only scenario where a rewrite generates positive return is if it unlocks new revenue that the current architecture structurally prevents. No such opportunity is identified in the inputs.
 
 **Additional rewrite risks not captured above:**
 - Consumer ecosystem disruption: any breaking API change requires all downstream applications to migrate simultaneously or maintain two versions indefinitely
-- Key person risk: Spring Framework's core contributors hold critical implicit knowledge; a rewrite team of 5 engineers would lack this
+- Key person risk: Spring Framework's core contributors hold critical implicit knowledge; a rewrite team of 5 engineers would likely lack this
 - Competitive displacement: 12–18 months of reduced feature output opens the door for competitors (Quarkus, Micronaut, Vert.x)
 
 ---
 
 ## Recommendation
 
-**Strangle & Refactor**
+**Hybrid — Strangle the riskiest structural components; refactor the rest incrementally**
 
-The technical score (2.44) and the financial case point in the same direction with unusual clarity. A rewrite is not viable for Spring Framework for three compounding reasons:
+The corrected technical score (2.72) places the system in the Hybrid zone. The financial case strongly disfavours a rewrite (24-month net cost of ~$3.5M vs ~$1.2M for Strangle & Refactor). The technical and financial evidence are aligned.
 
-1. **Consumer coupling is prohibitive.** With millions of downstream consumers and 20+ years of public API contracts (307 `@since 1.x` annotations still active), there is no realistic cutover mechanism. A rewrite would require either breaking every downstream application or maintaining two frameworks in parallel — neither of which is commercially viable.
+**What Hybrid means in practice for Spring Framework:**
 
-2. **The test suite is an exceptional asset.** 3,460 test files and 61,198 assertions constitute a near-complete behavioural specification. This is exactly the safety net required for confident incremental refactoring. It eliminates the main argument for a rewrite (i.e., "we can't refactor safely without tests").
+1. **Strangle the IoC core's god classes.** `DefaultListableBeanFactory` (2,806 lines) and `AbstractAutowireCapableBeanFactory` (2,062 lines) are the highest-concentration structural debt. These should be decomposed behind stable internal interfaces using the existing 3,460-test suite as a regression harness. This is the "strangle" component — isolating and replacing the most entangled parts without breaking the public API.
 
-3. **The financial case for rewrite is deeply negative.** A 24-month rewrite horizon produces a net cost of ~$3.5M with a break-even beyond 16 years. The Strangle & Refactor path costs ~$1.2M over 12 months with break-even at month 15.
+2. **Refactor the remaining modules incrementally.** The majority of Spring modules (spring-jdbc, spring-tx, spring-web, spring-webflux) have cleaner, more decomposed designs. These can be improved through standard refactoring — removing deprecated APIs, reducing class sizes, improving test coverage in weak areas — without the risk of a strangle operation.
 
-**Recommended starting point:** Decompose `DefaultListableBeanFactory` (2,806 lines) and `AbstractAutowireCapableBeanFactory` (2,062 lines) using the existing test suite as the regression harness. These two files concentrate the most structural debt and are the most cited sources of maintenance friction. This work can proceed without breaking any public API.
+3. **Do not rewrite.** The financial break-even on a rewrite (~17 years) and the consumer coupling constraint make a clean rewrite commercially inviable under any scenario described in the inputs.
 
-**Where technical score and financial case agree:** Both clearly favour Strangle & Refactor. There is no meaningful tension to resolve.
+**Where technical score and financial case agree:** Both clearly favour incremental approaches. There is no meaningful tension to resolve — the Hybrid verdict is stable across all but the most pessimistic sensitivity scenarios.
+
+**Score proximity to thresholds:** The current score (2.72) is 0.22 above the Strangle & Refactor threshold (2.5). If functional understanding is found to be poor (D6 = 1), the score drops to 2.36 and the verdict shifts to Strangle & Refactor — a more conservative posture. This would not change the financial recommendation materially but would argue for beginning with the safest, most test-covered modules rather than attacking the IoC core first.
 
 ---
 
 ## Key Questions for the Business
 
-1. **What is driving maintenance cost?** The $50,000/month maintenance figure is the largest cost lever. Is it primarily incident response in the IoC core, Java version upgrade friction, or something else? The answer determines which modules to prioritise in the refactor roadmap.
+1. **Are the external or internal consumers of this framework?** The Consumer Coupling score (D7 = 1) assumed worst-case: an OSS library with millions of uncontrolled downstream consumers. If this is an internal fork or private deployment with a bounded consumer set, the real coupling score is 2–4, and a more aggressive refactoring or even partial rewrite of specific modules becomes viable. This is the single question most likely to change the recommendation.
 
-2. **Are there specific features the current architecture prevents?** A rewrite is only financially justified if it unlocks new revenue. Is there a product capability (e.g., native compilation performance, reactive-first design, GraalVM compatibility) that the current architecture structurally blocks and that would generate materially more than $18,000/month in additional revenue?
+2. **What is driving the $50,000/month maintenance cost?** This is the largest cost lever. Is it primarily incident response in the IoC core, Java version upgrade friction, or something else? The answer determines which modules to prioritise in the Hybrid roadmap — and whether the conservative 20% savings estimate is too low or too high.
 
-3. **What is the call center cost actually attributable to?** At $5,000/month, call center cost is the smallest component. If it is driven by developer support queries (Spring API confusion), targeted documentation investment may reduce it faster and cheaper than any code change.
+3. **Are there product capabilities the current architecture structurally prevents?** A more aggressive rewrite is only financially justified if it unlocks new revenue. Is there a specific capability (e.g., native compilation performance, GraalVM static images, reactive-first design without legacy servlet bindings) that the current architecture blocks and that would generate materially more than $18,000/month in new revenue?
 
-4. **How many downstream applications (internal) consume Spring Framework?** The consumer coupling score (1) assumed millions of external consumers because this is an open-source library. If your organisation's use case is an internal fork or a bounded internal deployment, the cutover risk is significantly lower and the score would rise toward 2–3, potentially shifting the verdict toward Hybrid.
+4. **How well does the current team understand the implicit edge-case behaviour in the IoC layer and AOP subsystem?** Functional understanding (D6) is the dimension with the most verdict sensitivity. If the team scores this as 1–2 (poor understanding of edge cases), the recommendation shifts to a more cautious Strangle & Refactor posture. If they score it 4–5, the Hybrid verdict is confirmed.
 
-5. **Does the team have experience with Java 21+ virtual threads and Valhalla value types?** Spring Framework v7 targets Java 21+. If the maintenance cost growth is driven by Java compatibility overhead, investing in team upskilling on modern Java features may reduce costs more than any architectural change — and is a prerequisite for any refactoring work regardless.
-
----
-
-> **Sensitivity analysis — Dimension 8 (Team Capability), scored Unknown-adjacent**
->
-> The migration inputs state 5 engineers available but do not specify expertise level. The sensitivity range below shows that even if team capability were scored at 1 (no experience in target language), the final score (2.32) still falls in the Strangle & Refactor zone.
->
-> | Dim 8 Score | Weighted Total | Final Score | Verdict |
-> |---|---|---|---|
-> | 1 (no experience) | 55 | 2.20 | Strangle & Refactor |
-> | 3 (moderate — used above) | 61 | 2.44 | Strangle & Refactor |
-> | 5 (expert) | 65 | 2.60 | Hybrid |
->
-> Only at expert-level team capability (score 5) does the verdict shift to Hybrid — and only marginally (2.60, just above the 2.5 threshold). The dominant constraints (Consumer Coupling = 1, Deployment Complexity = 1, Codebase Size = 1) are independent of team capability and hold the score down regardless.
+5. **What is the call center cost attributable to?** At $5,000/month it is the smallest component, but if it is driven by developer support queries about the Spring API, targeted documentation investment may reduce it faster and more cheaply than any code change — and is a low-risk starting point regardless of the final migration strategy.
