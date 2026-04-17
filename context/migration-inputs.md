@@ -9,13 +9,13 @@ Leave any field as `Unknown` if you genuinely don't know — the agent will run 
 ## The System
 
 **System name:**
-Spring Framework
+Spring Boot
 
 **Codebase path:**
-https://github.com/spring-projects/spring-framework
+https://github.com/spring-projects/spring-boot
 
 **Target output directory:**
-documentationV4
+documentationV5
 
 **What is this system?**
 Key system for us.

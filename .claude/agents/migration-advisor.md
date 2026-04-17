@@ -59,7 +59,17 @@ Use the definitions in `.claude/skills/templates/rewrite-vs-refactor.md`.
 
 For dimensions 5 and 9, use the financial inputs to inform the score:
 - **Dimension 5 (Business Criticality):** High revenue → higher criticality → lower score. Use risk tolerance directly.
-- **Dimension 9 (Time Pressure):** High cost-to-revenue ratio → more urgent to act → informs how much time pressure exists.
+- **Dimension 9 (Time Pressure):** Use the cost-to-revenue ratio as the urgency signal, applying these thresholds:
+
+| Cost-to-revenue ratio | Urgency | Score |
+|---|---|---|
+| > 50% | Critical — costs are consuming the majority of revenue; immediate action required | 1 |
+| 26–50% | High — unsustainable cost structure; action needed within months | 2 |
+| 11–25% | Moderate — costs are a meaningful drag; 3–6 months available | 3 |
+| 5–10% | Low — costs are manageable; 6–12 months available | 4 |
+| < 5% | Minimal — no financial urgency; business can wait for the right solution | 5 |
+
+Always state the ratio, the applicable threshold band, and the resulting score explicitly in the report so the basis for the score is transparent.
 
 Cite the source for every score — quote the financial figure or input value, or name the file/class from the codebase.
 
