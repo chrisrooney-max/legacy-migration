@@ -38,7 +38,7 @@ Adapt the template fields to codebase analysis context:
 - **Recommendations** → align with the verdict from `rewrite-vs-refactor.md`
 - **Open Questions** → unresolved items flagged with `> ⚠️ Unclear:` across the spec docs
 
-Write the completed PRD to `final-docs/V{n}/prd.md`.
+Write the completed PRD to `prd-output/V{n}/prd.md`, using the same version number as the `analysis-output/V{n}/` directory from Step 1.
 
 Every claim in the PRD must cite a specific source document and section. Do not invent scope.
 

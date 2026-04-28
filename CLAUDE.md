@@ -24,7 +24,8 @@ Each agent run produces output into a versioned subfolder:
 | Directory | Contents | Produced by |
 |-----------|----------|-------------|
 | `analysis-output/V{n}/` | 10 spec documents (one subfolder per doc type) | `/analyse`, `code-documenter` |
-| `final-docs/V{n}/` | `audit-report.md`, `rewrite-vs-refactor.md`, `prd.md` | `/audit`, `/assess-migration`, `/analyse` |
+| `final-docs/V{n}/` | `audit-report.md`, `rewrite-vs-refactor.md` | `/audit`, `/assess-migration` |
+| `prd-output/V{n}/` | `prd.md` — rebuild PRD synthesised from all analysis outputs | `/analyse` |
 
 ## Documentation Framework
 

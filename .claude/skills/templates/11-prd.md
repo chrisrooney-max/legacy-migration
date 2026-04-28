@@ -164,6 +164,7 @@
 - analysis-output/V{n}/security/security-spec.md
 - analysis-output/V{n}/business-rules/business-rules-spec.md
 - final-docs/V{n}/rewrite-vs-refactor.md
+- prd-output/V{n}/prd.md (this document)
 
 ### Methodology Notes
 [Notes about analysis approach, codebase access limitations, or areas where evidence was thin]
