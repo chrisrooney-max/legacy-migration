@@ -13,13 +13,22 @@ This is a **legacy migration documentation agent** — a scaffold for automatica
 | `.claude/agents/` | Custom Claude subagents (code-documenter, migration-advisor, epic-creator) |
 | `.claude/skills/` | User-invocable skills (`/assess-migration`, `/create-epics`, `/document-code`) |
 | `.claude/skills/templates/` | Output templates for all 10 doc types, epic format, and rewrite-vs-refactor scoring |
-| `documentationV3/` | v3 analysis output for spring-projects/spring-framework |
+| `analysis-output/V{n}/` | Versioned 10-doc analysis output per codebase run |
+| `final-docs/V{n}/` | Versioned audit reports and rewrite-vs-refactor reports per run |
 | `examples/` | Example output documents |
-| `architecture/`, `modules/`, `api/`, `onboarding/` | Legacy scaffold folders from initial setup |
+
+## Output Directories
+
+Each agent run produces output into a versioned subfolder:
+
+| Directory | Contents | Produced by |
+|-----------|----------|-------------|
+| `analysis-output/V{n}/` | 10 spec documents (one subfolder per doc type) | `/analyse`, `code-documenter` |
+| `final-docs/V{n}/` | `audit-report.md`, `rewrite-vs-refactor.md`, `prd.md` | `/audit`, `/assess-migration`, `/analyse` |
 
 ## Documentation Framework
 
-Analysis produces **10 documents** per codebase, stored in versioned directories (e.g. `documentationV3/`):
+Analysis produces **10 documents** per codebase run, stored under `analysis-output/V{n}/`:
 
 | # | Folder | File | Purpose |
 |---|--------|------|---------|
@@ -37,7 +46,8 @@ Analysis produces **10 documents** per codebase, stored in versioned directories
 ## Naming Conventions
 
 - Documentation files: `{folder-name}-spec.md` (e.g. `architecture-spec.md`)
-- Output directories: `documentationV{n}/` for versioned analysis runs
+- Analysis output directories: `analysis-output/V{n}/` (increment n for each new run)
+- Final doc directories: `final-docs/V{n}/` (same version number as the matching analysis run)
 - GitHub issues: titled `Epic: <title>`, labelled `epic`
 
 ## GitHub Repository
@@ -47,7 +57,7 @@ Target repo for issues and pushes: `chrisrooney-max/legacy-migration`
 ## Agents & Skills
 
 - **`/document-code <path>`** — runs all 10 doc types against a codebase
-- **`/assess-migration <path>`** — scores codebase on rewrite vs strangle & refactor (outputs to `output/rewrite-vs-refactor.md`)
+- **`/assess-migration <path>`** — scores codebase on rewrite vs strangle & refactor (outputs to `final-docs/V{n}/rewrite-vs-refactor.md`)
 - **`/create-epics <path> owner/repo`** — creates GitHub issues as epics from codebase or output docs
 
 ## Workflow Conventions
